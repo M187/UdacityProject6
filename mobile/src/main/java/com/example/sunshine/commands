@@ -1,0 +1,11 @@
+// to install android-service/any apk on PC
+adb install *apk_name*
+
+// list of connected adb devices
+adb devices
+
+// telnet to your device
+1. telnet localhost *port_num*
+2. use 'auth' command to authenticate
+// use tis command to listen to android wearable connection
+3. redir add tcp:5601:5601
