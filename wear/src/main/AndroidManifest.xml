@@ -3,7 +3,6 @@
     package="com.example.sunshine">
 
     <uses-feature android:name="android.hardware.type.watch" />
-
     <uses-permission android:name="com.google.android.permission.PROVIDE_BACKGROUND" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -14,14 +13,12 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
-
         <receiver
             android:name="com.example.sunshine.SunshinePostNotificationReceiver"
-            android:exported="true">
-        </receiver>
+            android:exported="true"></receiver>
 
-
-        <service android:name="com.example.sunshine.SunshineWatchFaceService"
+        <service
+            android:name="com.example.sunshine.SunshineWatchFaceService"
             android:label="Tuts+ Wear Watch Face"
             android:permission="android.permission.BIND_WALLPAPER">
 
@@ -34,6 +31,7 @@
             <meta-data
                 android:name="com.google.android.wearable.watchface.preview_circular"
                 android:resource="@mipmap/ic_launcher" />
+
             <intent-filter>
                 <action android:name="android.service.wallpaper.WallpaperService" />
                 <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
@@ -41,8 +39,5 @@
 
         </service>
 
-
-
     </application>
-
 </manifest>

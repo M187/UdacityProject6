@@ -1,15 +1,10 @@
 package com.example.sunshine;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.graphics.Typeface;
 
 import android.support.annotation.LayoutRes;
 import android.support.wearable.watchface.CanvasWatchFaceService;
@@ -62,9 +57,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         public void onDraw(Canvas canvas, Rect bounds){
             myLayout.measure(specW, specH);
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(), myLayout.getMeasuredHeight());
-
-            //BitmapFactory.decodeResource(getResources(), R.drawable.bg_demo)
-            //myLayout.setBackgroundResource( R.drawable.bg_demo);
 
             canvas.drawColor(Color.YELLOW);
             myLayout.draw(canvas);
