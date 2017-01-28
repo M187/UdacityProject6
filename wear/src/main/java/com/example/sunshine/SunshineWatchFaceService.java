@@ -14,6 +14,8 @@ import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 /**
  * Created by michal.hornak on 1/28/2017.
@@ -26,19 +28,20 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
-
             setWatchFaceStyle( new WatchFaceStyle.Builder( SunshineWatchFaceService.this )
                     .setBackgroundVisibility( WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE )
                     .setCardPeekMode( WatchFaceStyle.PEEK_MODE_VARIABLE )
                     .setShowSystemUiTime( false )
                     .build()
             );
-
             buildMyLayoutXml(R.layout.activity_display);
         }
 
         View myLayout;
         int specW, specH;
+
+        TextView mMaxTemp, mMinTemp, mDate, mTime;
+        ImageView mWeatherIcon;
 
         private void buildMyLayoutXml(@LayoutRes int layoutId){
             //Inflate layout
@@ -51,6 +54,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             display.getSize(displaySize);
             specW = View.MeasureSpec.makeMeasureSpec(displaySize.x, View.MeasureSpec.EXACTLY);
             specH = View.MeasureSpec.makeMeasureSpec(displaySize.y, View.MeasureSpec.EXACTLY);
+
+            //Bind elements to members
+            mMaxTemp = (TextView) myLayout.findViewById(R.id.temperature_max_text);
+            mMinTemp = (TextView) myLayout.findViewById(R.id.temperature_min_text);
+            mDate = (TextView) myLayout.findViewById(R.id.date_text);
+            mTime = (TextView) myLayout.findViewById(R.id.watch_time_text);
+            mWeatherIcon = (ImageView) myLayout.findViewById(R.id.weather_icon_image);
         }
 
         @Override
