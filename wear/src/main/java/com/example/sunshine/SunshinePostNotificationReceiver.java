@@ -16,7 +16,8 @@ public class SunshinePostNotificationReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent displayIntent = new Intent(context, SunshineDisplayActivity.class);
+
+        Intent displayIntent = new Intent(context, SunshineWatchFaceService.class);
         String text = intent.getStringExtra(CONTENT_KEY);
         Notification notification = new Notification.Builder(context)
                 .setSmallIcon(R.mipmap.ic_launcher)
