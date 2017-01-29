@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Rect;
 
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.LayoutRes;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
@@ -17,6 +19,10 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Created by michal.hornak on 1/28/2017.
  */
@@ -24,6 +30,31 @@ import android.widget.TextView;
 public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
     private class SunshineWatchFaceEngine extends Engine{
+
+
+        private final int MSG_UPDATE_TIME = 0;
+
+        // handler to update the time once a second in interactive mode
+        final Handler mUpdateTimeHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                switch (message.what) {
+                    case MSG_UPDATE_TIME:
+                        invalidate();
+                        if (shouldTimerBeRunning()) {
+                            long timeMs = System.currentTimeMillis();
+                            long delayMs = 1 - (timeMs % 1000);
+                            mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+                        }
+                        break;
+                }
+            }
+        };
+
+        private boolean shouldTimerBeRunning(){
+            return  (this.isVisible() & !this.isInAmbientMode());
+        }
+
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -37,10 +68,22 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             buildMyLayoutXml(R.layout.activity_display);
         }
 
+        @Override
+        public void onVisibilityChanged(boolean visible){
+            super.onVisibilityChanged(visible);
+            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            if (shouldTimerBeRunning()) {
+                mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
+            }
+        }
+
         View myLayout;
         int specW, specH;
 
-        TextView mMaxTemp, mMinTemp, mDate, mTime;
+        DateFormat mTimeDateFormat = new SimpleDateFormat("HH:mm:ss");
+        DateFormat mDateDateFormat = new SimpleDateFormat("dd:MM:yyyy");
+
+        TextView mMaxTempTV, mMinTempTV, mDateTV, mTimeTV;
         ImageView mWeatherIcon;
 
         private void buildMyLayoutXml(@LayoutRes int layoutId){
@@ -56,10 +99,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             specH = View.MeasureSpec.makeMeasureSpec(displaySize.y, View.MeasureSpec.EXACTLY);
 
             //Bind elements to members
-            mMaxTemp = (TextView) myLayout.findViewById(R.id.temperature_max_text);
-            mMinTemp = (TextView) myLayout.findViewById(R.id.temperature_min_text);
-            mDate = (TextView) myLayout.findViewById(R.id.date_text);
-            mTime = (TextView) myLayout.findViewById(R.id.watch_time_text);
+            mMaxTempTV = (TextView) myLayout.findViewById(R.id.temperature_max_text);
+            mMinTempTV = (TextView) myLayout.findViewById(R.id.temperature_min_text);
+            mDateTV = (TextView) myLayout.findViewById(R.id.date_text);
+            mTimeTV = (TextView) myLayout.findViewById(R.id.watch_time_text);
             mWeatherIcon = (ImageView) myLayout.findViewById(R.id.weather_icon_image);
         }
 
@@ -68,8 +111,19 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             myLayout.measure(specW, specH);
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(), myLayout.getMeasuredHeight());
 
+            //set time and date
+            Date mDate = new Date();
+            mTimeTV.setText(mTimeDateFormat.format(mDate));
+            mDateTV.setText(mDateDateFormat.format(mDate));
+
             canvas.drawColor(Color.YELLOW);
             myLayout.draw(canvas);
+        }
+
+        @Override
+        public void onTimeTick() {
+            super.onTimeTick();
+            invalidate();
         }
 
     }
