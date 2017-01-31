@@ -19,6 +19,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
@@ -35,11 +37,24 @@ import android.widget.ProgressBar;
 import com.example.sunshine.data.SunshinePreferences;
 import com.example.sunshine.data.WeatherContract;
 import com.example.sunshine.sync.SunshineSyncUtils;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 public class MainActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor>,
-        ForecastAdapter.ForecastAdapterOnClickHandler {
+        ForecastAdapter.ForecastAdapterOnClickHandler,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener {
 
+
+    //<editor-fold desc="-- Provided code --">
     private final String TAG = MainActivity.class.getSimpleName();
 
     /*
@@ -154,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements
 
         SunshineSyncUtils.initialize(this);
 
+        createGoogleApiClient();
     }
 
     /**
@@ -223,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements
 
     /**
      * Called when a Loader has finished loading its data.
-     *
+     * <p>
      * NOTE: There is one small bug in this code. If no data is present in the cursor do to an
      * initial load being performed with no access to internet, the loading indicator will show
      * indefinitely, until data is present from the ContentProvider. This will be fixed in a
@@ -272,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
-     * This method will make the View for the weather data visible and hide the error message and
+     * This method will make the View for the weather data visible and hide the error dataMapMessage and
      * loading indicator.
      * <p>
      * Since it is okay to redundantly set the visibility of a View, we don't need to check whether
@@ -287,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements
 
     /**
      * This method will make the loading indicator visible and hide the weather View and error
-     * message.
+     * dataMapMessage.
      * <p>
      * Since it is okay to redundantly set the visibility of a View, we don't need to check whether
      * each view is currently visible or invisible.
@@ -303,10 +319,8 @@ public class MainActivity extends AppCompatActivity implements
      * This is where we inflate and set up the menu for this Activity.
      *
      * @param menu The options menu in which you place your items.
-     *
      * @return You must return true for the menu to be displayed;
-     *         if you return false it will not be shown.
-     *
+     * if you return false it will not be shown.
      * @see #onPrepareOptionsMenu
      * @see #onOptionsItemSelected
      */
@@ -324,7 +338,6 @@ public class MainActivity extends AppCompatActivity implements
      * Callback invoked when a menu item was selected from this Activity's menu.
      *
      * @param item The menu item that was selected by the user
-     *
      * @return true if you handle the menu click here, false otherwise
      */
     @Override
@@ -342,5 +355,85 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    //</editor-fold>
+
+    GoogleApiClient googleClient;
+
+    /**
+     * This method is called from onCreate method.
+     * It has been created only for better visualization.
+     */
+    private void createGoogleApiClient(){
+        googleClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+    }
+
+    // Connect to the data layer when the Activity starts
+    @Override
+    protected void onStart() {
+        super.onStart();
+        googleClient.connect();
+    }
+
+    // Disconnect from the data layer when the Activity stops
+    @Override
+    protected void onStop() {
+        if (null != googleClient && googleClient.isConnected()) {
+            googleClient.disconnect();
+        }
+        super.onStop();
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Log.i("Network", " ---- >  Sending data into emulator! ");
+        new SendToDataLayerThread("/sunshine_data", getTodayWeatherDataMap()).start();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) { }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) { }
+
+    class SendToDataLayerThread extends Thread {
+        String path;
+        DataMap dataMapMessage;
+
+        // Constructor to send a dataMapMessage to the data layer
+        SendToDataLayerThread(String p, DataMap msg) {
+            path = p;
+            dataMapMessage = msg;
+        }
+
+        public void run() {
+            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(googleClient).await();
+            for (Node node : nodes.getNodes()) {
+                // Construct a DataRequest and send over the data layer
+                PutDataMapRequest putDMR = PutDataMapRequest.create(path).setUrgent();
+                putDMR.getDataMap().putAll(dataMapMessage);
+                PutDataRequest request = putDMR.asPutDataRequest();
+                DataApi.DataItemResult result = Wearable.DataApi.putDataItem(googleClient, request).await();
+                if (result.getStatus().isSuccess()) {
+                    Log.d("myTag", "Message: {" + dataMapMessage + "} sent to: " + node.getDisplayName());
+                } else {
+                    // Log an error
+                    Log.d("myTag", "ERROR: failed to send Message");
+                }
+            }
+        }
+    }
+
+    private DataMap getTodayWeatherDataMap(){
+        DataMap dataMap = new DataMap();
+        dataMap.putLong("timestamp", System.currentTimeMillis());
+        dataMap.putString("max", "11");
+        dataMap.putString("min", "10");
+
+        return dataMap;
     }
 }

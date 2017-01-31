@@ -1,6 +1,9 @@
 package com.example.sunshine;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -11,6 +14,7 @@ import android.os.Message;
 import android.support.annotation.LayoutRes;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -29,9 +33,9 @@ import java.util.Date;
 
 public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
-    private class SunshineWatchFaceEngine extends Engine{
+    public class SunshineWatchFaceEngine extends Engine {
 
-
+        //<editor-fold desc="Creation and time stuff">
         private final int MSG_UPDATE_TIME = 0;
 
         // handler to update the time once a second in interactive mode
@@ -51,25 +55,49 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             }
         };
 
-        private boolean shouldTimerBeRunning(){
-            return  (this.isVisible() & !this.isInAmbientMode());
+        private boolean shouldTimerBeRunning() {
+            return (this.isVisible() & !this.isInAmbientMode());
         }
 
+        /**
+         * Should receive broadcast with weather data.
+         */
+        private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.d("Broadcast", " ---- > Some broadcast received.");
+
+                setWeatherData(
+                        intent.getExtras().getString("min"),
+                        intent.getExtras().getString("max"));
+                invalidate();
+            }
+        };
 
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
-            setWatchFaceStyle( new WatchFaceStyle.Builder( SunshineWatchFaceService.this )
-                    .setBackgroundVisibility( WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE )
-                    .setCardPeekMode( WatchFaceStyle.PEEK_MODE_VARIABLE )
-                    .setShowSystemUiTime( false )
+            setWatchFaceStyle(new WatchFaceStyle.Builder(SunshineWatchFaceService.this)
+                    .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
+                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
+                    .setShowSystemUiTime(false)
                     .build()
             );
             buildMyLayoutXml(R.layout.activity_display);
+
+            IntentFilter filter = new IntentFilter("SUNSHINE_ACTION");
+            SunshineWatchFaceService.this.registerReceiver(mBroadcastReceiver, filter);
         }
 
         @Override
-        public void onVisibilityChanged(boolean visible){
+        public void onDestroy() {
+            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            SunshineWatchFaceService.this.unregisterReceiver(mBroadcastReceiver);
+            super.onDestroy();
+        }
+
+        @Override
+        public void onVisibilityChanged(boolean visible) {
             super.onVisibilityChanged(visible);
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             if (shouldTimerBeRunning()) {
@@ -86,7 +114,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         TextView mMaxTempTV, mMinTempTV, mDateTV, mTimeTV;
         ImageView mWeatherIcon;
 
-        private void buildMyLayoutXml(@LayoutRes int layoutId){
+        private void buildMyLayoutXml(@LayoutRes int layoutId) {
             //Inflate layout
             LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             myLayout = inflater.inflate(layoutId, null);
@@ -107,7 +135,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         }
 
         @Override
-        public void onDraw(Canvas canvas, Rect bounds){
+        public void onDraw(Canvas canvas, Rect bounds) {
             myLayout.measure(specW, specH);
             myLayout.layout(0, 0, myLayout.getMeasuredWidth(), myLayout.getMeasuredHeight());
 
@@ -125,11 +153,16 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             super.onTimeTick();
             invalidate();
         }
+        //</editor-fold>
 
+        public void setWeatherData(String maxTemperature, String minTemperature) {
+            mMaxTempTV.setText(maxTemperature);
+            mMaxTempTV.setText(minTemperature);
+        }
     }
 
     @Override
-    public Engine onCreateEngine(){
+    public Engine onCreateEngine() {
         return new SunshineWatchFaceEngine();
     }
 

@@ -13,9 +13,11 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
-        <receiver
-            android:name="com.example.sunshine.SunshinePostNotificationReceiver"
-            android:exported="true"></receiver>
+        <service android:name=".SunshineListenerService">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
+            </intent-filter>
+        </service>
 
         <service
             android:name="com.example.sunshine.SunshineWatchFaceService"
